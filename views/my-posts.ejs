@@ -1,0 +1,13 @@
+<%- include("partials/header.ejs") %>
+
+<div class="page-wrapper"> 
+  <main class="my-posts-container">
+    <h2 class="section-title">My Posts</h2>
+
+    <!-- JS will inject user posts here -->
+    <div id="user-posts-anchor" data-page="my-posts"></div>
+  </main>
+</div>
+
+<script src="/js/posts.js"></script>
+<%- include("partials/footer.ejs") %>

@@ -1,0 +1,62 @@
+<%- include("partials/header.ejs") %>
+
+<div class="page-wrapper">
+  <h2 class="section-title">Blog Posts</h2>
+
+  <!-- Expose server posts to the browser -->
+  <script>
+    window.SERVER_POSTS = <%- JSON.stringify(posts || []) %>;
+  </script>
+
+  <main class="container" id="posts-container">
+
+    <% if (!posts || posts.length === 0) { %>
+      <p class="no-results">
+        No results found
+        <% if (q) { %> for "<%= q %>" <% } %>.
+      </p>
+    <% } else { %>
+
+      <% posts.forEach((post, idx) => { %>
+        <article class="post-card">
+
+          <img src="<%= post.image %>" alt="Post Image" class="post-image">
+          <h3 class="post-title"><%= post.title %></h3>
+          <p class="post-preview"><%= post.content %></p>
+
+          <div class="post-content">
+            <input type="checkbox" id="toggle-<%= idx %>" class="toggle">
+            <label for="toggle-<%= idx %>" class="read-more btn btn-secondary">
+              <span class="more-label">Read more</span>
+              <span class="less-label">Show less</span>
+            </label>
+
+            <div class="extra">
+              <p><%= post.ingredients %></p>
+              <p><%= post.extra %></p>
+            </div>
+          </div>
+
+          <!-- FRONTEND LIST BUTTON -->
+          <button class="btn btn-secondary add-to-list" data-id="<%= post.id %>">
+            Aggiungi alla tua Lista
+          </button>
+
+        </article>
+      <% }) %>
+
+    <% } %>
+
+    <!-- User posts from localStorage will be injected here -->
+    <div id="user-posts-anchor"></div>
+
+  </main>
+</div>
+
+<!-- IMPORTANT: posts.js MUST load BEFORE footer.ejs closes the body -->
+<script src="/js/posts.js"></script>
+
+<%- include("partials/footer.ejs") %>
+
+  
+  

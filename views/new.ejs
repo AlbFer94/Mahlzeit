@@ -1,0 +1,40 @@
+<%- include("partials/header.ejs") %>
+<div class="page-wrapper"> 
+<main class="new-post-container"> 
+    <h2 class="section-title">Crea Nuova Ricetta</h2> 
+    <form id="new-post-form"class="new-post-form" action="<%= typeof editId!== 'undefined' ? '/update-post' : '/submit' %>" 
+    method="POST" 
+    enctype="multipart/form-data">
+    
+    <% if (typeof editId !== 'undefined') { %>
+        <input type="hidden" name="editId" value="<%= editId %>">
+    <% } %>
+        <div class="form-group"> 
+            <label for="image">Carica una foto della Ricetta</label> 
+            <input id="image" type="file" name="image" accept="image/*"> 
+        </div>
+
+        <div class="form-group"> 
+            <label for="title">Titolo:</label> 
+            <input type="text" id="title" name="title" required value="<%=title|| '' %>"> 
+        </div> 
+        <div class="form-group"> 
+            <label for="content">Descrizione:</label> 
+            <textarea id="content" name="content" rows="4" required><%= content || '' %></textarea> 
+        </div> 
+        <div class="form-group"> 
+            <label for="ingredients">Ingredienti:</label> 
+            <textarea id="ingredients" name="ingredients" rows="4" required><%= ingredients || '' %></textarea> 
+        </div> 
+        <div class="form-group"> 
+            <label for="extra">Preparazione:</label> 
+            <textarea id="extra" name="extra" rows="4" placeholder="Come si prepara questa ricetta?"><%= extra || '' %></textarea> 
+        </div> 
+        <button type="submit" class="btn btn-primary">Post</button> 
+    </form> 
+</main>
+</div>
+<!-- Load localStorage logic -->
+<script src="/js/posts.js"></script>
+
+<%- include("partials/footer.ejs") %>

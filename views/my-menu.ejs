@@ -1,0 +1,28 @@
+<%- include("partials/header.ejs") %>
+
+<script>
+  window.SERVER_POSTS = <%- JSON.stringify(posts || []) %>;
+</script>
+
+<div class="page-wrapper"> 
+  <h2 class="section-title">Menu Settimanale</h2>
+
+  <!-- JS will inject the menu here -->
+  <main class="container" id="my-menu-container"></main>
+
+  <!-- Floating Shopping List Button --> 
+  <button id="shoppingListToggle" class="shopping-list-btn" style="display: none;">
+    🛒 Lista della spesa
+  </button>
+
+  <!-- Collapsible Shopping List Panel --> 
+  <div id="shoppingListPanel" class="shopping-list-panel"> 
+    <h3>Shopping List</h3> 
+    <ul id="shoppingListItems"></ul>
+    <button id="clearChecked" class="btn btn-secondary">Clear Checked</button> 
+  </div>
+</div>
+
+<script src="/js/posts.js"></script>
+
+<%- include("partials/footer.ejs") %>

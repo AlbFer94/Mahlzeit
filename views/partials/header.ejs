@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mählzeit</title>
+    <link rel="icon" type="image/png" href="/images/mahlzeit-logo.png">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+
+<div class="page-wrapper"> 
+<header class="header">
+  <a href="/" class="logo">
+    <img src="/images/mahlzeit-logo.png" alt="Mählzeit Logo">
+  </a>
+
+  <nav class="myLinks closed">
+    <a href="/new" class="btn btn-primary">New Post</a>
+    
+    <a href="/my-menu" class="btn btn-primary my-list-btn">
+    My List
+    <span id="list-counter" class="list-badge" style="display:none;"></span>      
+    </a>
+    
+    <a href="/my-posts" class="btn btn-primary">My Posts</a>
+
+  </nav>
+
+  <a href="#" class="icon" onclick="toggleNav(event)" aria-label="Toggle navigation" aria-expanded="false">
+    <i class="fa fa-bars"></i>
+  </a>
+
+  <form class="search-container" action="/" method="get" role="search">
+    <input type="text" placeholder="Search..." name="q" value="<%= typeof q !== 'undefined' ? q : '' %>">
+    <button type="submit"><i class="fa fa-search"></i></button>
+  </form>
+</header>
+</div>
+
+  <script>
+
+    function toggleNav(e) { e.preventDefault(); const nav = document.querySelector(".myLinks"); nav.classList.toggle("closed"); }
+  
+
+    // Sticky header: toggles fixed position after we've scrolled past header's initial position
+    (function(){
+      var header = document.getElementsByClassName('header')[0];
+      if (!header) return;
+      var offset = header.offsetTop + 8; // threshold
+      var isSticky = false;
+
+      function updateSticky(){
+        var scrollY = window.scrollY || window.pageYOffset;
+        if (scrollY > offset && !isSticky){
+          header.classList.add('is-sticky');
+          document.body.style.paddingTop = header.offsetHeight + 'px';
+          isSticky = true;
+        } else if (scrollY <= offset && isSticky){
+          header.classList.remove('is-sticky');
+          document.body.style.paddingTop = '';
+          isSticky = false;
+        }
+      }
+
+      window.addEventListener('scroll', updateSticky, {passive:true});
+      window.addEventListener('resize', function(){ if (isSticky) document.body.style.paddingTop = header.offsetHeight + 'px'; });
+      // run once on load
+      updateSticky();
+    })();
+  </script>

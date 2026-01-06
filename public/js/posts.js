@@ -470,6 +470,75 @@ document.addEventListener("DOMContentLoaded", () => {
   updateListCounter();
 });
 
+/* ---------------------------------------------------------
+   Initialize
+--------------------------------------------------------- */
+
+
+// === IMAGE COMPRESSION BEFORE UPLOAD ===
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  const fileInput = document.querySelector("input[type='file'][name='image']");
+
+  if (!form || !fileInput) return;
+
+  form.addEventListener("submit", async (e) => {
+    const file = fileInput.files[0];
+    if (!file) return; // No image selected → normal submit
+
+    e.preventDefault(); // Stop normal submit
+
+    try {
+      const compressedFile = await compressImage(file, 1200, 0.8);
+
+      // Replace original file with compressed one
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(compressedFile);
+      fileInput.files = dataTransfer.files;
+
+      form.submit(); // Now submit normally
+    } catch (err) {
+      console.error("Compression error:", err);
+      form.submit(); // fallback
+    }
+  });
+});
+
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = maxSize / Math.max(img.width, img.height);
+
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject("Compression failed");
+          resolve(new File([blob], "compressed.jpg", { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+
 
 
 

@@ -126,7 +126,7 @@ app.get("/my-posts", (req, res) => {
 
 //Edit post route Server-side
 
-/*   app.get("/edit-post/:id", (req, res) => {
+  app.get("/edit-post/:id", (req, res) => {
   const { id } = req.params;
   const post= myPosts.find(post=>post.id===id);
   
@@ -138,7 +138,7 @@ app.get("/my-posts", (req, res) => {
     ...post,
     editId: id
   });
-  }); */
+  });
 
 
    app.post("/submit", upload.single("image"), async (req, res) => {
@@ -215,20 +215,44 @@ app.get("/my-posts", (req, res) => {
       res.redirect("/my-posts");
     }); */
 
-/*     app.post("/update-post", upload.single('image'), (req, res) => {
-      const {editId,title,content,ingredients,extra}=req.body;
-      
-      const image = req.file ? '/images/' + req.file.filename : myPosts.find(post=>post.id===editId)?.image;
-      const updatedPost = { id:editId, image, title, content, ingredients, extra };
+    app.post("/update-post", upload.single("image"), async (req, res) => {
+  try {
+    const { editId, title, content, ingredients, extra } = req.body;
 
-      const myIndex=myPosts.findIndex(post=>post.id===editId);
-      if(myIndex!== -1) myPosts[myIndex]=updatedPost;
+    // Trova il post da aggiornare
+    const post = posts.find(p => p.id === editId);
+    if (!post) return res.status(404).send("Post non trovato");
 
-      const globalIndex=posts.findIndex(post=>post.id===editId);
-      if(globalIndex!== -1) posts[globalIndex]=updatedPost;
-    
-      res.redirect("/my-posts");
-    }); */
+    // Aggiorna i campi testuali
+    post.title = title;
+    post.content = content;
+    post.ingredients = ingredients;
+    post.extra = extra;
+
+    // Se è stata caricata una nuova immagine
+    if (req.file) {
+      const inputPath = req.file.path;
+      const outputFilename = `${Date.now()}.jpg`;
+      const outputPath = `public/images/${outputFilename}`;
+
+      await sharp(inputPath)
+        .rotate()
+        .resize({ width: 1200 })
+        .jpeg({ quality: 80 })
+        .toFile(outputPath);
+
+      fs.unlinkSync(inputPath);
+
+      post.image = `/images/${outputFilename}`;
+    }
+
+    res.redirect("/");
+  } catch (error) {
+    console.error("Errore update:", error);
+    res.status(500).send("Errore durante l'aggiornamento del post");
+  }
+});
+
 
 
 app.listen(port, () => {

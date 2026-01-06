@@ -3,6 +3,7 @@ import multer from "multer";
 import fs from "fs";
 import ejs from "ejs";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 
 
 
@@ -14,7 +15,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, imagesDir),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-'))
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }});
 
 
 const app = express();
@@ -140,16 +141,50 @@ app.get("/my-posts", (req, res) => {
   }); */
 
 
-    app.post("/submit", upload.single('image'), (req, res) => {
-      console.log("file:", req.file);
-      console.log("body:", req.body);
-      const { title, content, ingredients, extra } = req.body;
-      const image = req.file ? '/images/' + req.file.filename : (req.body.image || '/images/default.png');
-      const newPost = {id:randomUUID(), image, title, content, ingredients, extra };
-      posts.push(newPost);
-      myPosts.push(newPost);
-      res.redirect("/");
-    });
+   app.post("/submit", upload.single("image"), async (req, res) => {
+  try {
+    const { title, content, ingredients, extra } = req.body;
+
+    let imagePath = req.body.image || "/images/default.png";
+
+    // Se è stata caricata un'immagine, la processiamo con Sharp
+    if (req.file) {
+      const inputPath = req.file.path; // file salvato da Multer
+      const outputFilename = `${Date.now()}.jpg`;
+      const outputPath = `public/images/${outputFilename}`;
+
+      // Elaborazione immagine
+      await sharp(inputPath)
+        .rotate() // corregge orientamento EXIF
+        .resize({ width: 1200 }) // riduce dimensioni
+        .jpeg({ quality: 80 }) // comprime e normalizza
+        .toFile(outputPath);
+
+      // Elimina il file originale salvato da Multer
+      fs.unlinkSync(inputPath);
+
+      // Percorso finale da salvare nel post
+      imagePath = `/images/${outputFilename}`;
+    }
+
+    const newPost = {
+      id: randomUUID(),
+      image: imagePath,
+      title,
+      content,
+      ingredients,
+      extra
+    };
+
+    posts.push(newPost);
+
+    res.redirect("/");
+  } catch (error) {
+    console.error("Errore durante l'upload:", error);
+    res.status(500).send("Errore durante il caricamento dell'immagine");
+  }
+});
+
 
     //Post routes for user's menu and posts server-side storage
 

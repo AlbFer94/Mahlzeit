@@ -481,6 +481,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const fileInput = document.querySelector("input[type='file'][name='image']");
 
   if (!form || !fileInput) return;
+  // === UNIVERSAL UPLOAD VIA FETCH (Fix Chrome Samsung) ===
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  const fileInput = document.querySelector("input[type='file'][name='image']");
+
+  if (!form || !fileInput) return;
+
+  // === DIAGNOSTICA FILE INPUT ===
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      console.log("Nessun file selezionato");
+      return;
+    }
+
+    console.log("📸 DIAGNOSTICA FILE:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
+  });
+});
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

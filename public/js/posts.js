@@ -475,7 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
 --------------------------------------------------------- */
 
 
-// === IMAGE COMPRESSION (Compressor.js) ===
+// === IMAGE COMPRESSION WITH SAMSUNG CHROME FIX ===
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("form");
   const fileInput = document.querySelector("input[type='file'][name='image']");
@@ -486,13 +486,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = fileInput.files[0];
     if (!file) return;
 
+    // Detect Chrome Mobile on Android (Samsung)
+    const ua = navigator.userAgent.toLowerCase();
+    const isChromeMobile =
+      ua.includes("chrome") &&
+      ua.includes("android") &&
+      !ua.includes("edg");
+
+    // If Chrome Mobile → skip compression entirely
+    if (isChromeMobile) {
+      console.log("Skipping compression for Chrome Mobile");
+      return; // normal submit
+    }
+
+    // Otherwise → compress normally
     e.preventDefault();
 
     new Compressor(file, {
       quality: 0.8,
       maxWidth: 1200,
       maxHeight: 1200,
-      convertSize: 0, // converte tutto in JPEG
+      convertSize: 0,
       success(result) {
         const compressedFile = new File([result], "compressed.jpg", {
           type: "image/jpeg",
@@ -506,11 +520,12 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       error(err) {
         console.error("Compression error:", err);
-        form.submit(); // fallback
+        form.submit();
       },
     });
   });
 });
+
 
 
 

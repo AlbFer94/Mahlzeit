@@ -475,45 +475,43 @@ document.addEventListener("DOMContentLoaded", () => {
 --------------------------------------------------------- */
 
 
-// === IMAGE COMPRESSION (browser-image-compression) ===
+// === IMAGE COMPRESSION (Compressor.js) ===
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("form");
   const fileInput = document.querySelector("input[type='file'][name='image']");
 
   if (!form || !fileInput) return;
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     const file = fileInput.files[0];
-    if (!file) return; // No image selected → normal submit
+    if (!file) return;
 
-    e.preventDefault(); // Stop normal submit
+    e.preventDefault();
 
-    try {
-      const options = {
-        maxSizeMB: 1,              // massimo 1MB
-        maxWidthOrHeight: 1200,    // riduce risoluzione
-        useWebWorker: true,        // più veloce
-        fileType: "image/jpeg",    // converte tutto in JPEG standard
-        initialQuality: 0.8,       // qualità iniziale
-        alwaysKeepResolution: false
-      };
+    new Compressor(file, {
+      quality: 0.8,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      convertSize: 0, // converte tutto in JPEG
+      success(result) {
+        const compressedFile = new File([result], "compressed.jpg", {
+          type: "image/jpeg",
+        });
 
-      const compressedFile = await imageCompression(file, options);
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(compressedFile);
+        fileInput.files = dataTransfer.files;
 
-      // Sostituisce il file originale con quello compresso
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(
-        new File([compressedFile], "compressed.jpg", { type: "image/jpeg" })
-      );
-      fileInput.files = dataTransfer.files;
-
-      form.submit(); // Ora invia normalmente
-    } catch (err) {
-      console.error("Compression error:", err);
-      form.submit(); // fallback
-    }
+        form.submit();
+      },
+      error(err) {
+        console.error("Compression error:", err);
+        form.submit(); // fallback
+      },
+    });
   });
 });
+
 
 
 

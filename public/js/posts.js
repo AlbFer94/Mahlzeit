@@ -475,56 +475,42 @@ document.addEventListener("DOMContentLoaded", () => {
 --------------------------------------------------------- */
 
 
-// === IMAGE COMPRESSION WITH SAMSUNG CHROME FIX ===
+// === UNIVERSAL UPLOAD VIA FETCH (Fix Chrome Samsung) ===
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("form");
   const fileInput = document.querySelector("input[type='file'][name='image']");
 
   if (!form || !fileInput) return;
 
-  form.addEventListener("submit", (e) => {
-    const file = fileInput.files[0];
-    if (!file) return;
-
-    // Detect Chrome Mobile on Android (Samsung)
-    const ua = navigator.userAgent.toLowerCase();
-    const isChromeMobile =
-      ua.includes("chrome") &&
-      ua.includes("android") &&
-      !ua.includes("edg");
-
-    // If Chrome Mobile → skip compression entirely
-    if (isChromeMobile) {
-      console.log("Skipping compression for Chrome Mobile");
-      return; // normal submit
-    }
-
-    // Otherwise → compress normally
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    new Compressor(file, {
-      quality: 0.8,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      convertSize: 0,
-      success(result) {
-        const compressedFile = new File([result], "compressed.jpg", {
-          type: "image/jpeg",
-        });
+    const file = fileInput.files[0];
+    const formData = new FormData(form);
 
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(compressedFile);
-        fileInput.files = dataTransfer.files;
+    if (file) {
+      formData.set("image", file); // assicura che il file sia incluso
+    }
 
-        form.submit();
-      },
-      error(err) {
-        console.error("Compression error:", err);
-        form.submit();
-      },
-    });
+    try {
+      const response = await fetch(form.action, {
+        method: form.method,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      // Redirect dopo il successo
+      window.location.href = response.url;
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Errore durante l'upload. Riprova.");
+    }
   });
 });
+
 
 
 

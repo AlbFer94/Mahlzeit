@@ -475,7 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
 --------------------------------------------------------- */
 
 
-// === IMAGE COMPRESSION BEFORE UPLOAD ===
+// === IMAGE COMPRESSION (browser-image-compression) ===
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("form");
   const fileInput = document.querySelector("input[type='file'][name='image']");
@@ -489,14 +489,25 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault(); // Stop normal submit
 
     try {
-      const compressedFile = await compressImage(file, 1200, 0.8);
+      const options = {
+        maxSizeMB: 1,              // massimo 1MB
+        maxWidthOrHeight: 1200,    // riduce risoluzione
+        useWebWorker: true,        // più veloce
+        fileType: "image/jpeg",    // converte tutto in JPEG standard
+        initialQuality: 0.8,       // qualità iniziale
+        alwaysKeepResolution: false
+      };
 
-      // Replace original file with compressed one
+      const compressedFile = await imageCompression(file, options);
+
+      // Sostituisce il file originale con quello compresso
       const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(compressedFile);
+      dataTransfer.items.add(
+        new File([compressedFile], "compressed.jpg", { type: "image/jpeg" })
+      );
       fileInput.files = dataTransfer.files;
 
-      form.submit(); // Now submit normally
+      form.submit(); // Ora invia normalmente
     } catch (err) {
       console.error("Compression error:", err);
       form.submit(); // fallback
@@ -504,39 +515,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function compressImage(file, maxSize, quality) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      img.src = e.target.result;
-    };
-
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const scale = maxSize / Math.max(img.width, img.height);
-
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject("Compression failed");
-          resolve(new File([blob], "compressed.jpg", { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        quality
-      );
-    };
-
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 
 

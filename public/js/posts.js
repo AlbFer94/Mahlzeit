@@ -488,23 +488,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!form || !fileInput) return;
 
-  // === DIAGNOSTICA FILE INPUT ===
+  // === DIAGNOSTICA FILE INPUT (INSERISCI QUI) ===
+  const debugBox = document.getElementById("file-debug");
+
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
+
     if (!file) {
-      console.log("Nessun file selezionato");
+      debugBox.innerHTML = "<b>Nessun file selezionato</b>";
       return;
     }
 
-    console.log("📸 DIAGNOSTICA FILE:", {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      lastModified: file.lastModified
-    });
+    debugBox.innerHTML = `
+      <b>File selezionato:</b><br>
+      Nome: ${file.name}<br>
+      Tipo: ${file.type || "(vuoto)"}<br>
+      Dimensione: ${file.size} bytes<br>
+      Ultima modifica: ${new Date(file.lastModified).toLocaleString()}
+    `;
   });
-});
 
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -512,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData(form);
 
     if (file) {
-      formData.set("image", file); // assicura che il file sia incluso
+      formData.set("image", file);
     }
 
     try {
@@ -525,7 +529,6 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Upload failed");
       }
 
-      // Redirect dopo il successo
       window.location.href = response.url;
     } catch (err) {
       console.error("Upload error:", err);
@@ -533,6 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
 
 

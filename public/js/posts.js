@@ -224,31 +224,23 @@ function loadEditMode() {
    Handle new post creation or editing
 --------------------------------------------------------- */
 async function compressImage(file, maxWidth = 1200, quality = 0.7) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
+  const bitmap = await createImageBitmap(file);
 
-    reader.onload = e => img.src = e.target.result;
-    reader.readAsDataURL(file);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+  const scale = maxWidth / bitmap.width;
+  const newWidth = bitmap.width > maxWidth ? maxWidth : bitmap.width;
+  const newHeight = bitmap.width > maxWidth ? bitmap.height * scale : bitmap.height;
 
-      const scale = maxWidth / img.width;
-      const newWidth = img.width > maxWidth ? maxWidth : img.width;
-      const newHeight = img.width > maxWidth ? img.height * scale : img.height;
+  canvas.width = newWidth;
+  canvas.height = newHeight;
 
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+  ctx.drawImage(bitmap, 0, 0, newWidth, newHeight);
 
-      resolve(canvas.toDataURL("image/jpeg", quality));
-    };
-
-    img.onerror = reject;
-  });
+  return canvas.toDataURL("image/jpeg", quality);
 }
+
 
 function setupNewPostForm() {
   const form = document.getElementById("new-post-form");

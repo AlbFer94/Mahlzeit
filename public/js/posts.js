@@ -215,7 +215,311 @@ function loadEditMode() {
 
   document.getElementById("title").value = post.title;
   document.getElementById("content").value = post.content;
+  document.getElementById("ingredients").value = post.ingredients; 
+  document.getElementById("extra").value = post.extra; 
+  window.__EDIT_MODE = editId;
 }
+
+/* ---------------------------------------------------------
+   Handle new post creation or editing
+--------------------------------------------------------- */
+function setupNewPostForm() {
+  const form = document.getElementById("new-post-form");
+  if (!form) return;
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const title = document.getElementById("title").value.trim();
+    const content = document.getElementById("content").value.trim();
+    const ingredients = document.getElementById("ingredients").value.trim();
+    const extra = document.getElementById("extra").value.trim();
+    const imageInput = document.getElementById("image");
+
+    const userPosts = loadUserPosts();
+
+    function finishSave(imageDataUrl) {
+      const updatedPost = {
+        id: window.__EDIT_MODE || generateId(),
+        image: imageDataUrl || "/images/default.png",
+        title,
+        content,
+        ingredients: normalizeIngredients(ingredients),
+        extra
+      };
+
+      if (window.__EDIT_MODE) {
+        const index = userPosts.findIndex(p => p.id === window.__EDIT_MODE);
+        userPosts[index] = updatedPost;
+        localStorage.removeItem("editPostId");
+      } else {
+        userPosts.push(updatedPost);
+      }
+
+      saveUserPosts(userPosts);
+      window.location.href = "/";
+    }
+
+    const file = imageInput.files[0];
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = evt => finishSave(evt.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      finishSave(null);
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   Render weekly menu on /my-menu
+--------------------------------------------------------- */
+function renderMyMenu() {
+  const container = document.getElementById("my-menu-container");
+  if (!container) return;
+
+  const list = loadMyList();
+  const allPosts = getAllPosts();
+  const selected = allPosts.filter(p => list.includes(p.id));
+
+  if (selected.length === 0) {
+    container.innerHTML = "<p>La tua lista è vuota!</p>";
+    return;
+  }
+
+  selected.forEach(post => {
+    const article = document.createElement("article");
+    article.className = "post-card";
+
+    const img = document.createElement("img");
+    img.className = "post-image";
+    img.src = post.image;
+
+    const title = document.createElement("h3");
+    title.className = "post-title";
+    title.textContent = post.title;
+
+    const preview = document.createElement("p");
+    preview.className = "post-preview";
+    preview.textContent = post.content;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn btn-danger";
+    removeBtn.textContent = "Rimuovi dalla lista";
+    removeBtn.addEventListener("click", () => {
+      let list = loadMyList().filter(id => id !== post.id);
+      saveMyList(list);
+      window.location.reload();
+    });
+
+    article.appendChild(img);
+    article.appendChild(title);
+    article.appendChild(preview);
+    article.appendChild(removeBtn);
+
+    container.appendChild(article);
+  });
+}
+
+/* ---------------------------------------------------------
+   Shopping list grouped by recipe title
+--------------------------------------------------------- */
+function setupShoppingList() {
+  const toggleBtn = document.getElementById("shoppingListToggle");
+  const panel = document.getElementById("shoppingListPanel");
+  const listEl = document.getElementById("shoppingListItems");
+  const clearBtn = document.getElementById("clearChecked");
+
+  if (!toggleBtn || !panel || !listEl) return;
+
+  const list = loadMyList();
+  const allPosts = getAllPosts();
+  const selected = allPosts.filter(p => list.includes(p.id));
+
+  if (selected.length === 0) {
+    toggleBtn.style.display = "none";
+    return;
+  }
+
+  toggleBtn.style.display = "block";
+
+  const grouped = selected.map(post => {
+    const items = post.ingredients
+      .split("\n")
+      .map(i => i.replace(/^- /, "").trim())
+      .filter(i => i.length > 0);
+
+    return { title: post.title, items };
+  });
+
+  grouped.forEach(group => {
+    const section = document.createElement("li");
+    section.classList.add("recipe-group");
+
+    section.innerHTML = `
+      <details>
+        <summary>${group.title}</summary>
+        <ul>
+          ${group.items
+            .map(item => {
+              const id = `${group.title}-${item}`.replace(/\s+/g, "_");
+              return `
+                <li>
+                  <input type="checkbox" id="${id}">
+                  <label for="${id}">${item}</label>
+                </li>
+              `;
+            })
+            .join("")}
+        </ul>
+      </details>
+    `;
+
+    listEl.appendChild(section);
+  });
+
+  listEl.addEventListener("change", () => {
+    const checked = Array.from(listEl.querySelectorAll("input:checked")).map(cb => cb.id);
+    localStorage.setItem("shoppingListChecked", JSON.stringify(checked));
+  });
+
+  const saved = JSON.parse(localStorage.getItem("shoppingListChecked") || "[]");
+  saved.forEach(id => {
+    const cb = document.getElementById(id);
+    if (cb) cb.checked = true;
+  });
+
+  toggleBtn.addEventListener("click", () => panel.classList.toggle("open"));
+
+  clearBtn.addEventListener("click", () => {
+    listEl.querySelectorAll("input:checked").forEach(cb => cb.parentElement.remove());
+  });
+}
+
+/* ---------------------------------------------------------
+   Search across ALL posts
+--------------------------------------------------------- */
+function setupSearch() {
+  const input = document.getElementById("search-input");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const query = input.value.toLowerCase();
+    const allPosts = getAllPosts();
+
+    const filtered = allPosts.filter(p =>
+      p.title.toLowerCase().includes(query) ||
+      p.content.toLowerCase().includes(query) ||
+      p.ingredients.toLowerCase().includes(query)
+    );
+
+    renderSearchResults(filtered);
+  });
+}
+
+function renderSearchResults(posts) {
+  const container = document.getElementById("posts-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  posts.forEach(post => {
+    const article = document.createElement("article");
+    article.className = "post-card";
+
+    const img = document.createElement("img");
+    img.className = "post-image";
+    img.src = post.image;
+
+    const title = document.createElement("h3");
+    title.className = "post-title";
+    title.textContent = post.title;
+
+    const preview = document.createElement("p");
+    preview.className = "post-preview";
+    preview.textContent = post.content;
+
+    article.appendChild(img);
+    article.appendChild(title);
+    article.appendChild(preview);
+
+    container.appendChild(article);
+  });
+}
+
+/* ---------------------------------------------------------
+   Initialize
+--------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  renderUserPosts();
+  setupAddToListButtons();
+  loadEditMode();
+  setupNewPostForm();
+  renderMyMenu();
+  setupShoppingList();
+  setupSearch();
+  updateListCounter();
+});
+
+/* ---------------------------------------------------------
+   UNIVERSAL UPLOAD VIA FETCH + DIAGNOSTICA
+--------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  const fileInput = document.querySelector("input[type='file'][name='image']");
+
+  if (!form || !fileInput) return;
+
+  // === DIAGNOSTICA FILE INPUT ===
+  const debugBox = document.getElementById("file-debug");
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+
+    if (!debugBox) {
+      console.warn("file-debug non trovato nella pagina");
+      return;
+    }
+
+    if (!file) {
+      debugBox.innerHTML = "<b>Nessun file selezionato</b>";
+      return;
+    }
+
+    debugBox.innerHTML = `
+      <b>File selezionato:</b><br>
+      Nome: ${file.name}<br>
+      Tipo: ${file.type || "(vuoto)"}<br>
+      Dimensione: ${file.size} bytes<br>
+      Ultima modifica: ${new Date(file.lastModified).toLocaleString()}
+    `;
+  });
+
+  // === FETCH UPLOAD ===
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const file = fileInput.files[0];
+    const formData = new FormData(form);
+
+    if (file) {
+      formData.set("image", file);
+    }
+
+    try {
+      const response = await fetch(form.action, {
+      method: form.method, 
+      body: formData,
+     });
+
+     window.location.href = response.url; 
+    }catch (err) { 
+      console.error("Upload error:", err); 
+      alert("Errore durante l'upload. Riprova."); 
+    } 
+  }); 
+});
 
 
 

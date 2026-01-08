@@ -276,6 +276,9 @@ function setupNewPostForm() {
       }
 
       saveUserPosts(userPosts);
+      const imageInput = document.getElementById("image");
+      if (imageInput) imageInput.value = "";
+
       window.location.href = "/";
     }
 

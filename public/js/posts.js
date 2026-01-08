@@ -197,7 +197,25 @@ function setupAddToListButtons() {
       }
     });
   });
-};
+}
+
+/* ---------------------------------------------------------
+   Edit mode on new.ejs
+--------------------------------------------------------- */
+function loadEditMode() {
+  const form = document.getElementById("new-post-form");
+  if (!form) return;
+
+  const editId = localStorage.getItem("editPostId");
+  if (!editId) return;
+
+  const posts = loadUserPosts();
+  const post = posts.find(p => p.id === editId);
+  if (!post) return;
+
+  document.getElementById("title").value = post.title;
+  document.getElementById("content").value = post.content;
+}
 
 
 

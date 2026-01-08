@@ -535,6 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore durante l'upload. Riprova.");
     }
   });
+ })
 });
 
 

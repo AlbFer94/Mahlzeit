@@ -223,6 +223,33 @@ function loadEditMode() {
 /* ---------------------------------------------------------
    Handle new post creation or editing
 --------------------------------------------------------- */
+async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = e => img.src = e.target.result;
+    reader.readAsDataURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const scale = maxWidth / img.width;
+      const newWidth = img.width > maxWidth ? maxWidth : img.width;
+      const newHeight = img.width > maxWidth ? img.height * scale : img.height;
+
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+
+    img.onerror = reject;
+  });
+}
+
 function setupNewPostForm() {
   const form = document.getElementById("new-post-form");
   if (!form) return;
@@ -263,9 +290,17 @@ function setupNewPostForm() {
     const file = imageInput.files[0];
 
     if (file) {
-      const reader = new FileReader();
-      reader.onload = evt => finishSave(evt.target.result);
-      reader.readAsDataURL(file);
+      console.log("Compressione immagine in corso");
+
+      compressImage(file).then(compressedDataUrl =>{
+        finishSave(compressedDataUrl);
+      }).catch(err =>{
+        console.error("Errore compressione:", err);
+        // fallback: salva immagine originale 
+        const reader = new FileReader(); 
+        reader.onload = evt => finishSave(evt.target.result); 
+        reader.readAsDataURL(file); 
+      });
     } else {
       finishSave(null);
     }
@@ -461,80 +496,4 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSearch();
   updateListCounter();
 });
-
-/* ---------------------------------------------------------
-   UNIVERSAL UPLOAD VIA FETCH + DIAGNOSTICA
---------------------------------------------------------- */
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("new-post-form");
-  const fileInput = document.querySelector("input[type='file'][name='image']");
-
-  if (!form || !fileInput) return;
-
-  // === DIAGNOSTICA FILE INPUT ===
-  const debugBox = document.getElementById("file-debug");
-
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files[0];
-
-    if (!debugBox) {
-      console.warn("file-debug non trovato nella pagina");
-      return;
-    }
-
-    if (!file) {
-      debugBox.innerHTML = "<b>Nessun file selezionato</b>";
-      return;
-    }
-
-    debugBox.innerHTML = `
-      <b>File selezionato:</b><br>
-      Nome: ${file.name}<br>
-      Tipo: ${file.type || "(vuoto)"}<br>
-      Dimensione: ${file.size} bytes<br>
-      Ultima modifica: ${new Date(file.lastModified).toLocaleString()}
-    `;
-  });
-
-  // === FETCH UPLOAD ===
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const file = fileInput.files[0];
-    const formData = new FormData(form);
-
-    if (file) {
-      formData.set("image", file);
-    }
-
-    try {
-      const response = await fetch(form.action, {
-      method: form.method, 
-      body: formData,
-     });
-
-     if (!response.ok){
-      throw new error("Upload faild");
-     }
-
-     window.location.href = response.url; 
-    }catch (err) { 
-      console.error("Upload error:", err); 
-      alert("Errore durante l'upload. Riprova."); 
-    } 
-  }); 
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
 

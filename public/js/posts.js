@@ -466,7 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
    UNIVERSAL UPLOAD VIA FETCH + DIAGNOSTICA
 --------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.querySelector("form");
+  const form = document.getElementById("new-post-form");
   const fileInput = document.querySelector("input[type='file'][name='image']");
 
   if (!form || !fileInput) return;
@@ -512,6 +512,10 @@ document.addEventListener("DOMContentLoaded", () => {
       method: form.method, 
       body: formData,
      });
+
+     if (!response.ok){
+      throw new error("Upload faild");
+     }
 
      window.location.href = response.url; 
     }catch (err) { 

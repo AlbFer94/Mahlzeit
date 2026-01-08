@@ -2,6 +2,36 @@ console.log("🔥 POSTS.JS LOADED FROM:", window.location.href);
 window.postsLoaded = true;
 
 /* ---------------------------------------------------------
+   MINI-CONSOLE MOBILE (DEBUG SU SAMSUNG S23)
+--------------------------------------------------------- */
+(function () {
+  const box = document.getElementById("mobile-debug");
+  if (!box) return;
+
+  function write(type, msg) {
+    box.textContent += `[${type}] ${msg}\n`;
+  }
+
+  const origLog = console.log;
+  console.log = function (...args) {
+    origLog.apply(console, args);
+    write("LOG", args.join(" "));
+  };
+
+  const origErr = console.error;
+  console.error = function (...args) {
+    origErr.apply(console, args);
+    write("ERR", args.join(" "));
+  };
+
+  const origWarn = console.warn;
+  console.warn = function (...args) {
+    origWarn.apply(console, args);
+    write("WARN", args.join(" "));
+  };
+})();
+
+/* ---------------------------------------------------------
    Utility: generate unique IDs
 --------------------------------------------------------- */
 function generateId() {
@@ -215,33 +245,47 @@ function loadEditMode() {
 
   document.getElementById("title").value = post.title;
   document.getElementById("content").value = post.content;
-  document.getElementById("ingredients").value = post.ingredients; 
-  document.getElementById("extra").value = post.extra; 
+  document.getElementById("ingredients").value = post.ingredients;
+  document.getElementById("extra").value = post.extra;
   window.__EDIT_MODE = editId;
+}
+
+/* ---------------------------------------------------------
+   COMPRESSIONE IMMAGINE (compatibile Samsung S23 + Chrome)
+--------------------------------------------------------- */
+async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const scale = maxWidth / img.width;
+        const newWidth = img.width > maxWidth ? maxWidth : img.width;
+        const newHeight = img.width > maxWidth ? img.height * scale : img.height;
+
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /* ---------------------------------------------------------
    Handle new post creation or editing
 --------------------------------------------------------- */
-async function compressImage(file, maxWidth = 1200, quality = 0.7) {
-  const bitmap = await createImageBitmap(file);
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  const scale = maxWidth / bitmap.width;
-  const newWidth = bitmap.width > maxWidth ? maxWidth : bitmap.width;
-  const newHeight = bitmap.width > maxWidth ? bitmap.height * scale : bitmap.height;
-
-  canvas.width = newWidth;
-  canvas.height = newHeight;
-
-  ctx.drawImage(bitmap, 0, 0, newWidth, newHeight);
-
-  return canvas.toDataURL("image/jpeg", quality);
-}
-
-
 function setupNewPostForm() {
   const form = document.getElementById("new-post-form");
   if (!form) return;
@@ -276,7 +320,8 @@ function setupNewPostForm() {
       }
 
       saveUserPosts(userPosts);
-      const imageInput = document.getElementById("image");
+
+      // PATCH per Chrome Android
       if (imageInput) imageInput.value = "";
 
       window.location.href = "/";
@@ -284,18 +329,29 @@ function setupNewPostForm() {
 
     const file = imageInput.files[0];
 
+    console.log("RAW FILES:", imageInput.files);
+    console.log("FILE:", file);
     if (file) {
-      console.log("Compressione immagine in corso");
+      console.log("NAME:", file.name);
+      console.log("TYPE:", file.type);
+      console.log("SIZE:", file.size);
+    }
 
-      compressImage(file).then(compressedDataUrl =>{
-        finishSave(compressedDataUrl);
-      }).catch(err =>{
-        console.error("Errore compressione:", err);
-        // fallback: salva immagine originale 
-        const reader = new FileReader(); 
-        reader.onload = evt => finishSave(evt.target.result); 
-        reader.readAsDataURL(file); 
-      });
+    if (file) {
+      console.log("Compressione immagine in corso...");
+
+      compressImage(file)
+        .then(compressedDataUrl => {
+          console.log("Compressione completata");
+          finishSave(compressedDataUrl);
+        })
+        .catch(err => {
+          console.error("Errore compressione:", err);
+
+          const reader = new FileReader();
+          reader.onload = evt => finishSave(evt.target.result);
+          reader.readAsDataURL(file);
+        });
     } else {
       finishSave(null);
     }
@@ -491,4 +547,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSearch();
   updateListCounter();
 });
+
 

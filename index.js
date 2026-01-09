@@ -253,6 +253,33 @@ app.get("/my-posts", (req, res) => {
   }
 });
 
+app.post("/upload-image", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nessun file ricevuto" });
+    }
+
+    const inputPath = req.file.path;
+    const outputFilename = `${Date.now()}.jpg`;
+    const outputPath = `public/images/${outputFilename}`;
+
+    await sharp(inputPath)
+      .rotate()
+      .resize({ width: 1200 })
+      .jpeg({ quality: 80 })
+      .toFile(outputPath);
+
+    fs.unlinkSync(inputPath);
+
+    res.json({ imageUrl: `/images/${outputFilename}` });
+
+  } catch (err) {
+    console.error("Errore upload:", err);
+    res.status(500).json({ error: "Errore durante l'upload" });
+  }
+});
+
+
 
 
 app.listen(port, () => {

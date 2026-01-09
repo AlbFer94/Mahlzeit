@@ -2,9 +2,8 @@
 <div class="page-wrapper"> 
 <main class="new-post-container"> 
     <h2 class="section-title">Crea Nuova Ricetta</h2> 
-    <form id="new-post-form"class="new-post-form" action="<%= typeof editId!== 'undefined' ? '/update-post' : '/submit' %>" 
-    method="POST" 
-    enctype="multipart/form-data">
+    <form id="new-post-form" class="new-post-form" enctype="multipart/form-data">
+
     
     <% if (typeof editId !== 'undefined') { %>
         <input type="hidden" name="editId" value="<%= editId %>">

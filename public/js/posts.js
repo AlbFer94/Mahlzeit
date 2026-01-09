@@ -1,8 +1,7 @@
-console.log("🔥 POSTS.JS LOADED FROM:", window.location.href);
-window.postsLoaded = true;
+console.log("🔥 POSTS.JS LOADED");
 
 /* ---------------------------------------------------------
-   MINI-CONSOLE MOBILE (DEBUG SU SAMSUNG S23)
+   MINI-CONSOLE MOBILE (DEBUG)
 --------------------------------------------------------- */
 (function () {
   const box = document.getElementById("mobile-debug");
@@ -32,7 +31,7 @@ window.postsLoaded = true;
 })();
 
 /* ---------------------------------------------------------
-   Utility: generate unique IDs
+   Utility
 --------------------------------------------------------- */
 function generateId() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -92,7 +91,7 @@ function getAllPosts() {
 }
 
 /* ---------------------------------------------------------
-   Delete a user post
+   Delete user post
 --------------------------------------------------------- */
 function deleteUserPost(id) {
   let posts = loadUserPosts().filter(p => p.id !== id);
@@ -105,7 +104,7 @@ function deleteUserPost(id) {
 }
 
 /* ---------------------------------------------------------
-   Render user posts (Homepage + My Posts)
+   Render user posts
 --------------------------------------------------------- */
 function renderUserPosts() {
   const anchor = document.getElementById("user-posts-anchor");
@@ -122,7 +121,6 @@ function renderUserPosts() {
     const img = document.createElement("img");
     img.className = "post-image";
     img.src = post.image;
-    img.alt = "Post Image";
 
     const title = document.createElement("h3");
     title.className = "post-title";
@@ -209,7 +207,7 @@ function renderUserPosts() {
 }
 
 /* ---------------------------------------------------------
-   Generic setup for "Aggiungi alla tua Lista"
+   Add to list
 --------------------------------------------------------- */
 function setupAddToListButtons() {
   document.querySelectorAll(".add-to-list").forEach(btn => {
@@ -230,7 +228,7 @@ function setupAddToListButtons() {
 }
 
 /* ---------------------------------------------------------
-   Edit mode on new.ejs
+   Edit mode (LocalStorage)
 --------------------------------------------------------- */
 function loadEditMode() {
   const form = document.getElementById("new-post-form");
@@ -247,11 +245,12 @@ function loadEditMode() {
   document.getElementById("content").value = post.content;
   document.getElementById("ingredients").value = post.ingredients;
   document.getElementById("extra").value = post.extra;
+
   window.__EDIT_MODE = editId;
 }
 
 /* ---------------------------------------------------------
-   COMPRESSIONE IMMAGINE (compatibile Samsung S23 + Chrome)
+   Client-side image compression
 --------------------------------------------------------- */
 async function compressImage(file, maxWidth = 1200, quality = 0.7) {
   return new Promise((resolve, reject) => {
@@ -284,13 +283,30 @@ async function compressImage(file, maxWidth = 1200, quality = 0.7) {
 }
 
 /* ---------------------------------------------------------
+   Upload image to server
+--------------------------------------------------------- */
+async function uploadImageToServer(dataUrl) {
+  const blob = await (await fetch(dataUrl)).blob();
+  const formData = new FormData();
+  formData.append("image", blob, "upload.jpg");
+
+  const res = await fetch("/upload-image", {
+    method: "POST",
+    body: formData
+  });
+
+  const json = await res.json();
+  return json.imageUrl;
+}
+
+/* ---------------------------------------------------------
    Handle new post creation or editing
 --------------------------------------------------------- */
 function setupNewPostForm() {
   const form = document.getElementById("new-post-form");
   if (!form) return;
 
-  form.addEventListener("submit", function (e) {
+  form.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const title = document.getElementById("title").value.trim();
@@ -301,65 +317,52 @@ function setupNewPostForm() {
 
     const userPosts = loadUserPosts();
 
-    function finishSave(imageDataUrl) {
-      const updatedPost = {
-        id: window.__EDIT_MODE || generateId(),
-        image: imageDataUrl || "/images/default.png",
-        title,
-        content,
-        ingredients: normalizeIngredients(ingredients),
-        extra
-      };
-
-      if (window.__EDIT_MODE) {
-        const index = userPosts.findIndex(p => p.id === window.__EDIT_MODE);
-        userPosts[index] = updatedPost;
-        localStorage.removeItem("editPostId");
-      } else {
-        userPosts.push(updatedPost);
-      }
-
-      saveUserPosts(userPosts);
-
-      // PATCH per Chrome Android
-      if (imageInput) imageInput.value = "";
-
-      window.location.href = "/";
-    }
+    let finalImageUrl = "/images/default.png";
 
     const file = imageInput.files[0];
-
-    console.log("RAW FILES:", imageInput.files);
-    console.log("FILE:", file);
-    if (file) {
-      console.log("NAME:", file.name);
-      console.log("TYPE:", file.type);
-      console.log("SIZE:", file.size);
-    }
 
     if (file) {
       console.log("Compressione immagine in corso...");
 
-      compressImage(file)
-        .then(compressedDataUrl => {
-          console.log("Compressione completata");
-          finishSave(compressedDataUrl);
-        })
-        .catch(err => {
-          console.error("Errore compressione:", err);
+      try {
+        const compressed = await compressImage(file);
+        console.log("Compressione completata");
 
-          const reader = new FileReader();
-          reader.onload = evt => finishSave(evt.target.result);
-          reader.readAsDataURL(file);
-        });
-    } else {
-      finishSave(null);
+        finalImageUrl = await uploadImageToServer(compressed);
+        console.log("Upload completato:", finalImageUrl);
+
+      } catch (err) {
+        console.error("Errore compressione/upload:", err);
+      }
     }
+
+    const updatedPost = {
+      id: window.__EDIT_MODE || generateId(),
+      image: finalImageUrl,
+      title,
+      content,
+      ingredients: normalizeIngredients(ingredients),
+      extra
+    };
+
+    if (window.__EDIT_MODE) {
+      const index = userPosts.findIndex(p => p.id === window.__EDIT_MODE);
+      userPosts[index] = updatedPost;
+      localStorage.removeItem("editPostId");
+    } else {
+      userPosts.push(updatedPost);
+    }
+
+    saveUserPosts(userPosts);
+
+    if (imageInput) imageInput.value = "";
+
+    window.location.href = "/";
   });
 }
 
 /* ---------------------------------------------------------
-   Render weekly menu on /my-menu
+   Render weekly menu
 --------------------------------------------------------- */
 function renderMyMenu() {
   const container = document.getElementById("my-menu-container");
@@ -409,7 +412,7 @@ function renderMyMenu() {
 }
 
 /* ---------------------------------------------------------
-   Shopping list grouped by recipe title
+   Shopping list
 --------------------------------------------------------- */
 function setupShoppingList() {
   const toggleBtn = document.getElementById("shoppingListToggle");
@@ -484,7 +487,7 @@ function setupShoppingList() {
 }
 
 /* ---------------------------------------------------------
-   Search across ALL posts
+   Search
 --------------------------------------------------------- */
 function setupSearch() {
   const input = document.getElementById("search-input");

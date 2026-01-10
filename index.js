@@ -4,6 +4,13 @@ import fs from "fs";
 import ejs from "ejs";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({ 
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+  api_key: process.env.CLOUDINARY_API_KEY, 
+  api_secret: process.env.CLOUDINARY_API_SECRET 
+});
 
 
 
@@ -184,6 +191,31 @@ app.get("/my-posts", (req, res) => {
     res.status(500).send("Errore durante il caricamento dell'immagine");
   }
 });
+
+app.post("/upload-image-cloudinary", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nessun file ricevuto" });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "mahlzeit_uploads",
+      transformation: [
+        { width: 1200, crop: "limit" },
+        { quality: "auto" }
+      ]
+    });
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({ imageUrl: result.secure_url });
+
+  } catch (err) {
+    console.error("Errore Cloudinary:", err);
+    res.status(500).json({ error: "Errore durante l'upload su Cloudinary" });
+  }
+});
+
 
 
     //Post routes for user's menu and posts server-side storage

@@ -290,7 +290,7 @@ async function uploadImageToServer(dataUrl) {
   const formData = new FormData();
   formData.append("image", blob, "upload.jpg");
 
-  const res = await fetch("/upload-image", {
+  const res = await fetch("/upload-image-cloudinary", {
     method: "POST",
     body: formData
   });
@@ -298,6 +298,7 @@ async function uploadImageToServer(dataUrl) {
   const json = await res.json();
   return json.imageUrl;
 }
+
 
 /* ---------------------------------------------------------
    Handle new post creation or editing
